@@ -12,7 +12,6 @@ RUN go build -o /src/strata-forge .
 FROM golang:1.22-bookworm
 ENV GOTOOLCHAIN=local
 WORKDIR /app
-COPY --from=build /src/strata-forge /app/strata-forge
-COPY --from=build /src/web /app/web
+COPY --from=build /src /app
 EXPOSE 8080
 ENTRYPOINT ["/app/strata-forge"]
