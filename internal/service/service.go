@@ -35,6 +35,7 @@ type LabService struct {
 	sampleAudit        *engine.SampleAudit
 	alertAudit         *engine.AlertAudit
 	reportAudit        *engine.ReportAudit
+	instruments        *engine.InstrumentCatalog
 }
 
 func New(st *store.Store, c clock.Clock) *LabService {
@@ -51,6 +52,7 @@ func New(st *store.Store, c clock.Clock) *LabService {
 		sampleAudit:      engine.NewSampleAudit(),
 		alertAudit:       engine.NewAlertAudit(),
 		reportAudit:      engine.NewReportAudit(),
+		instruments:      engine.NewInstrumentCatalog(),
 	}
 }
 
