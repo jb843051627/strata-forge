@@ -12,7 +12,7 @@ func (s *LabService) ReceiveSample(ctx context.Context, in model.SampleInput) (m
 	if err := model.ValidateSampleInput(in); err != nil {
 		return model.Sample{}, err
 	}
-	if err := s.contextError(ctx); err != nil {
+	if err := contextGateReceive(ctx); err != nil {
 		return model.Sample{}, fmt.Errorf("receive sample: %w", err)
 	}
 	item := model.Sample{Code: in.Code, Site: in.Site, DepthStart: in.DepthStart, DepthEnd: in.DepthEnd, Status: model.SampleReceived, ReceivedAt: s.clock.Now(), Notes: in.Notes}
@@ -24,6 +24,15 @@ func (s *LabService) ReceiveSample(ctx context.Context, in model.SampleInput) (m
 		return model.Sample{}, wrap("record sample event", err)
 	}
 	return created, nil
+}
+
+func contextGateReceive(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }
 
 func (s *LabService) GetSample(ctx context.Context, id int64) (model.Sample, error) {

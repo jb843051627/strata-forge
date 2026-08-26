@@ -25,6 +25,9 @@ func (s *Store) SaveMeasurementReview(ctx context.Context, measurement model.Mea
 }
 
 func (s *Store) SaveReportAndEvent(ctx context.Context, report model.Report, event model.Event) (model.Report, model.Event, error) {
+	if err := contextGateTransaction(ctx); err != nil {
+		return model.Report{}, model.Event{}, err
+	}
 	var savedReport model.Report
 	var savedEvent model.Event
 	err := s.withTx(ctx, func(tx *sql.Tx) error {
@@ -49,4 +52,13 @@ func (s *Store) SaveReportAndEvent(ctx context.Context, report model.Report, eve
 		return model.Report{}, model.Event{}, err
 	}
 	return savedReport, savedEvent, nil
+}
+
+func contextGateTransaction(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }

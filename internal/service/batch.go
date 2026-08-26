@@ -19,7 +19,7 @@ func (s *LabService) BatchRecord(ctx context.Context, inputs []model.Measurement
 	}
 	result := BatchResult{Completed: make([]model.Measurement, 0, len(inputs)), Failed: make([]string, 0)}
 	for i, input := range inputs {
-		if err := s.contextError(ctx); err != nil {
+		if err := contextGateBatch(ctx); err != nil {
 			result.Stopped = true
 			return result, fmt.Errorf("%w: stopped after %d measurements", model.ErrCancelled, i)
 		}
@@ -31,6 +31,15 @@ func (s *LabService) BatchRecord(ctx context.Context, inputs []model.Measurement
 		result.Completed = append(result.Completed, item)
 	}
 	return result, nil
+}
+
+func contextGateBatch(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }
 
 func (s *LabService) ValidateBatch(inputs []model.MeasurementInput) error {

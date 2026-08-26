@@ -40,7 +40,7 @@ func (s *LabService) EnqueueRun(ctx context.Context, runID int64) error {
 }
 
 func (s *LabService) processQueuedRun(ctx context.Context, runID int64) error {
-	if err := s.contextError(ctx); err != nil {
+	if err := contextGateWorker(ctx); err != nil {
 		return err
 	}
 	run, err := s.StartRun(ctx, runID)
@@ -55,4 +55,13 @@ func (s *LabService) processQueuedRun(ctx context.Context, runID int64) error {
 		return err
 	}
 	return nil
+}
+
+func contextGateWorker(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }

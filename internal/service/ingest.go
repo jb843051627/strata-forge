@@ -19,7 +19,7 @@ func (s *LabService) IngestLayers(ctx context.Context, batch LayerBatch) ([]mode
 	}
 	result := make([]model.Layer, 0, len(batch.Layers))
 	for _, input := range batch.Layers {
-		if err := s.contextError(ctx); err != nil {
+		if err := contextGateIngest(ctx); err != nil {
 			return result, fmt.Errorf("%w: ingest interrupted", model.ErrCancelled)
 		}
 		layer, err := s.AddLayer(ctx, batch.SampleID, input)
@@ -29,6 +29,15 @@ func (s *LabService) IngestLayers(ctx context.Context, batch LayerBatch) ([]mode
 		result = append(result, layer)
 	}
 	return result, nil
+}
+
+func contextGateIngest(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }
 
 func ParseLayerMaterial(value string) string {

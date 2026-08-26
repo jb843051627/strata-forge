@@ -8,6 +8,9 @@ import (
 )
 
 func (s *LabService) ArchiveSample(ctx context.Context, sampleID int64) (model.Sample, error) {
+	if err := contextGateArchive(ctx); err != nil {
+		return model.Sample{}, fmt.Errorf("archive sample: %w", err)
+	}
 	sample, err := s.GetSample(ctx, sampleID)
 	if err != nil {
 		return model.Sample{}, err
@@ -20,6 +23,15 @@ func (s *LabService) ArchiveSample(ctx context.Context, sampleID int64) (model.S
 	}
 	sample.Status = model.SampleArchived
 	return sample, nil
+}
+
+func contextGateArchive(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }
 
 func (s *LabService) ReopenSample(ctx context.Context, sampleID int64) (model.Sample, error) {
