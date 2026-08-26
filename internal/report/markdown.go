@@ -8,6 +8,9 @@ import (
 )
 
 func MarkdownSummary(summary model.SampleSummary) string {
+	if summary.Sample.ID == 0 {
+		return "# 未选择样品\n"
+	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "# %s\n\n", summary.Sample.Code)
 	fmt.Fprintf(&b, "- Site: %s\n- Status: %s\n- Depth: %s\n\n", summary.Sample.Site, summary.Sample.Status, model.FormatDepth(summary.Sample.DepthStart, summary.Sample.DepthEnd))

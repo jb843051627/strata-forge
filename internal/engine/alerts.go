@@ -26,5 +26,8 @@ func EvaluateMeasurementAlert(measurement model.Measurement) *AlertRule {
 }
 
 func BuildAlert(sampleID, layerID int64, rule *AlertRule, now string) model.Alert {
+	if rule == nil {
+		return model.Alert{SampleID: sampleID, LayerID: layerID, Severity: "warning", Code: "missing-rule", Message: "alert rule unavailable"}
+	}
 	return model.Alert{SampleID: sampleID, LayerID: layerID, Severity: rule.Severity, Code: rule.Code, Message: fmt.Sprintf("%s (%s)", rule.Message, now)}
 }
