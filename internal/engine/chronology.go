@@ -17,9 +17,6 @@ func BuildChronology(layers []model.Layer, estimate model.AgeEstimate) []Chronol
 	if len(ordered) == 0 {
 		return nil
 	}
-	if len(ordered) == 0 {
-		return nil
-	}
 	points := make([]ChronologyPoint, 0, len(ordered))
 	for _, layer := range ordered {
 		fraction := layer.BottomDepth / ordered[len(ordered)-1].BottomDepth
