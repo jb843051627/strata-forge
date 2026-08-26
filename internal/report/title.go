@@ -1,0 +1,7 @@
+package report
+
+import "github.com/jb843051627/strata-forge/internal/model"
+
+func SummaryTitle(summary *model.SampleSummary) string {
+		return summary.Sample.Code + " 年代解释"
+}
