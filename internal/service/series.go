@@ -30,7 +30,9 @@ func (s *MeasurementSeries) Append(layerID int64, value float64) error {
 func (s *MeasurementSeries) Snapshot(layerID int64) []float64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return append([]float64(nil), s.values[layerID]...)
+	result := make([]float64, len(s.values[layerID]))
+	copy(result, s.values[layerID])
+	return result
 }
 
 func (s *MeasurementSeries) Smooth(layerID int64, radius int) []float64 {

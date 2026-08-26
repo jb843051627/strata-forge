@@ -29,3 +29,13 @@ func (c *StateCache) Delete(key int64) {
 	delete(c.values, key)
 	c.mu.Unlock()
 }
+
+func (c *StateCache) Snapshot() map[int64]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	result := make(map[int64]string, len(c.values))
+	for key, value := range c.values {
+		result[key] = value
+	}
+	return result
+}

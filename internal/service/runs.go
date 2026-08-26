@@ -8,6 +8,8 @@ import (
 )
 
 func (s *LabService) QueueRun(ctx context.Context, sampleID int64) (model.Run, error) {
+	s.runCreationMu.Lock()
+	defer s.runCreationMu.Unlock()
 	if err := requirePositiveID(sampleID, "sample"); err != nil {
 		return model.Run{}, err
 	}
@@ -36,6 +38,8 @@ func (s *LabService) QueueRun(ctx context.Context, sampleID int64) (model.Run, e
 }
 
 func (s *LabService) StartRun(ctx context.Context, runID int64) (model.Run, error) {
+	s.runStateMu.Lock()
+	defer s.runStateMu.Unlock()
 	if err := requirePositiveID(runID, "run"); err != nil {
 		return model.Run{}, err
 	}

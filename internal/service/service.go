@@ -16,10 +16,12 @@ type LabService struct {
 	age      *engine.AgeEstimator
 	clock    clock.Clock
 
-	queueMu sync.Mutex
-	queue   chan int64
-	workers sync.WaitGroup
-	closed  bool
+	queueMu       sync.Mutex
+	queue         chan int64
+	workers       sync.WaitGroup
+	closed        bool
+	runCreationMu sync.Mutex
+	runStateMu    sync.Mutex
 
 	reviewAuditMu      sync.Mutex
 	runAuditMu         sync.Mutex
