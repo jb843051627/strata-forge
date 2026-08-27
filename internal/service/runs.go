@@ -45,13 +45,24 @@ func (s *LabService) StartRun(ctx context.Context, runID int64) (model.Run, erro
 	if err != nil {
 		return model.Run{}, wrap("get run", err)
 	}
+	// Another caller already moved this run to active. Surface it as a
+	// conflict (not an invalid transition) so racing workers recognize the
+	// expected race outcome and bail out cleanly.
+	if run.State == model.RunActive {
+		return run, fmt.Errorf("%w: run %d already active", model.ErrConflict, run.ID)
+	}
 	if err := s.workflow.MoveRun(run.State, model.RunActive); err != nil {
 		return model.Run{}, err
 	}
+	// Race guard: concurrent workers (or an API caller) may start the same
+	// queued run. TransitionRun only succeeds when the persisted state is
+	// still the pre-transition state, so the first caller wins and the rest
+	// observe a conflict and bail out instead of overwriting started_at/state.
 	now := s.clock.Now()
+	fromState := run.State
 	run.State = model.RunActive
 	run.StartedAt = &now
-	if err := s.store.UpdateRun(ctx, run); err != nil {
+	if err := s.store.TransitionRun(ctx, run, fromState); err != nil {
 		return model.Run{}, wrap("start run", err)
 	}
 	_, err = s.store.AppendEvent(ctx, model.Event{SampleID: run.SampleID, Kind: "run.started", Payload: fmt.Sprintf("run=%d", run.ID), CreatedAt: now})

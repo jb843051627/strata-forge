@@ -75,6 +75,34 @@ func (s *Store) UpdateRun(ctx context.Context, item model.Run) error {
 	return nil
 }
 
+// TransitionRun atomically moves a run to item.State only when its current
+// persisted state equals fromState. This guards the queued->active (and other)
+// transitions against concurrent workers racing to start the same run: the
+// first UPDATE matches (state still queued) and wins, a competing worker finds
+// the row already active and matches zero rows. Returns ErrConflict when the
+// expected state no longer holds, so callers can identify the race.
+func (s *Store) TransitionRun(ctx context.Context, item model.Run, fromState string) error {
+	var started, finished any
+	if item.StartedAt != nil {
+		started = clock.Format(*item.StartedAt)
+	}
+	if item.FinishedAt != nil {
+		finished = clock.Format(*item.FinishedAt)
+	}
+	result, err := s.execContext(ctx, `UPDATE runs SET state = ?, started_at = ?, finished_at = ?, cancel_note = ? WHERE id = ? AND state = ?`, item.State, started, finished, item.CancelNote, item.ID, fromState)
+	if err != nil {
+		return fmt.Errorf("transition run: %w", err)
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read run transition count: %w", err)
+	}
+	if count == 0 {
+		return model.ErrConflict
+	}
+	return nil
+}
+
 func (s *Store) FindActiveRun(ctx context.Context, sampleID int64) (model.Run, error) {
 	row := s.db.QueryRowContext(ctx, `SELECT `+runColumns+` FROM runs WHERE sample_id = ? AND state IN (?, ?) ORDER BY id DESC LIMIT 1`, sampleID, model.RunQueued, model.RunActive)
 	item, err := scanRun(row)

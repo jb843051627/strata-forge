@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jb843051627/strata-forge/internal/model"
@@ -45,6 +46,12 @@ func (s *LabService) processQueuedRun(ctx context.Context, runID int64) error {
 	}
 	run, err := s.StartRun(ctx, runID)
 	if err != nil {
+		// A conflict here means another worker (or API caller) already moved
+		// this queued run to active. That is the expected outcome of the race
+		// guard, not a failure: the run is being processed, so do nothing.
+		if errors.Is(err, model.ErrConflict) {
+			return nil
+		}
 		return err
 	}
 	if err := s.contextError(ctx); err != nil {
