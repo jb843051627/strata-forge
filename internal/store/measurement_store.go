@@ -14,7 +14,7 @@ import (
 const measurementColumns = `id, layer_id, kind, input_value, unit, value, uncertainty, status, started_at, finished_at, operator`
 
 func (s *Store) CreateMeasurement(ctx context.Context, item model.Measurement) (model.Measurement, error) {
-	result, err := s.execContext(context.Background(), `INSERT INTO measurements(layer_id, kind, input_value, unit, value, uncertainty, status, started_at, finished_at, operator) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, item.LayerID, item.Kind, item.InputValue, item.Unit, item.Value, item.Uncertainty, item.Status, nullableTime(item.StartedAt), nullableTime(item.FinishedAt), item.Operator)
+	result, err := s.execContext(ctx, `INSERT INTO measurements(layer_id, kind, input_value, unit, value, uncertainty, status, started_at, finished_at, operator) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, item.LayerID, item.Kind, item.InputValue, item.Unit, item.Value, item.Uncertainty, item.Status, nullableTime(item.StartedAt), nullableTime(item.FinishedAt), item.Operator)
 	if err != nil {
 		return model.Measurement{}, fmt.Errorf("create measurement: %w", err)
 	}
