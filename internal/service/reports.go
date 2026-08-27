@@ -10,40 +10,52 @@ import (
 )
 
 func (s *LabService) BuildReport(ctx context.Context, sampleID int64) (model.Report, error) {
-	sample, err := s.GetSample(context.Background(), sampleID)
+	if err := contextGateReport(ctx); err != nil {
+		return model.Report{}, fmt.Errorf("build report: %w", err)
+	}
+	sample, err := s.GetSample(ctx, sampleID)
 	if err != nil {
 		return model.Report{}, err
 	}
-	layers, err := s.ListLayers(context.Background(), sampleID)
+	layers, err := s.ListLayers(ctx, sampleID)
 	if err != nil {
 		return model.Report{}, err
 	}
-	measurements, err := s.store.ListMeasurementsForSample(context.Background(), sampleID)
+	measurements, err := s.store.ListMeasurementsForSample(ctx, sampleID)
 	if err != nil {
 		return model.Report{}, wrap("read report measurements", err)
 	}
-	if err := s.ensureReviewable(context.Background(), sampleID, measurements); err != nil {
+	if err := s.ensureReviewable(ctx, sampleID, measurements); err != nil {
 		return model.Report{}, err
 	}
 	estimate, err := s.age.Estimate(engine.SnapshotLayers(layers), engine.SnapshotMeasurements(measurements))
 	if err != nil {
 		return model.Report{}, wrap("estimate sample age", err)
 	}
-	version, err := s.store.NextReportVersion(context.Background(), sampleID)
+	version, err := s.store.NextReportVersion(ctx, sampleID)
 	if err != nil {
 		return model.Report{}, wrap("allocate report version", err)
 	}
 	summary := fmt.Sprintf("%s: %d layers, %d measurements, estimated %.2f-%.2f ka", sample.Code, len(layers), len(measurements), estimate.Minimum, estimate.Maximum)
 	report := model.Report{SampleID: sampleID, Version: version, Status: model.ReportFinal, Summary: summary, AgeMin: estimate.Minimum, AgeMax: estimate.Maximum, CreatedAt: s.clock.Now()}
 	eventPayload, _ := json.Marshal(map[string]any{"report_version": version, "age_min": estimate.Minimum, "age_max": estimate.Maximum})
-	saved, _, err := s.store.SaveReportAndEvent(context.Background(), report, model.Event{SampleID: sampleID, Kind: "report.created", Payload: string(eventPayload), CreatedAt: s.clock.Now()})
+	saved, _, err := s.store.SaveReportAndEvent(ctx, report, model.Event{SampleID: sampleID, Kind: "report.created", Payload: string(eventPayload), CreatedAt: s.clock.Now()})
 	if err != nil {
 		return model.Report{}, wrap("save report", err)
 	}
-	if err := s.store.UpdateSampleStatus(context.Background(), sampleID, model.SampleReview); err != nil {
+	if err := s.store.UpdateSampleStatus(ctx, sampleID, model.SampleReview); err != nil {
 		return model.Report{}, wrap("mark sample review", err)
 	}
 	return saved, nil
+}
+
+func contextGateReport(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }
 
 func (s *LabService) ensureReviewable(ctx context.Context, sampleID int64, measurements []model.Measurement) error {
