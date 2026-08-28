@@ -1,0 +1,12 @@
+.git
+.git/**
+*.db
+*.db-shm
+*.db-wal
+cases
+_docker
+tools
+metadata
+fixes
+*.patch
+*.log
