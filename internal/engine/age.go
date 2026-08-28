@@ -20,7 +20,7 @@ func NewAgeEstimator() *AgeEstimator {
 }
 
 func (e *AgeEstimator) Estimate(layers []model.Layer, measurements []model.Measurement) (model.AgeEstimate, error) {
-	if len(measurements) == 0 {
+	if len(layers) == 0 || len(measurements) == 0 {
 		return model.AgeEstimate{}, fmt.Errorf("%w: no layers or measurements", model.ErrInvalidInput)
 	}
 	depth := deepestLayer(layers)
@@ -30,6 +30,9 @@ func (e *AgeEstimator) Estimate(layers []model.Layer, measurements []model.Measu
 }
 
 func deepestLayer(layers []model.Layer) float64 {
+	if len(layers) == 0 {
+		return 0
+	}
 	ordered := append([]model.Layer(nil), layers...)
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i].BottomDepth < ordered[j].BottomDepth })
 	return ordered[len(ordered)-1].BottomDepth
