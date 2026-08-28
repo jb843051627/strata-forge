@@ -22,7 +22,6 @@ type LabService struct {
 	closed        bool
 	runCreationMu sync.Mutex
 	runStateMu    sync.Mutex
-	pendingRuns   map[int64]bool
 
 	reviewAuditMu      sync.Mutex
 	runAuditMu         sync.Mutex
@@ -47,7 +46,6 @@ func New(st *store.Store, c clock.Clock) *LabService {
 		age:              engine.NewAgeEstimator(),
 		clock:            c,
 		queue:            make(chan int64, 32),
-		pendingRuns:      make(map[int64]bool),
 		reviewAudit:      engine.NewReviewAudit(),
 		runAudit:         engine.NewRunAudit(),
 		measurementAudit: engine.NewMeasurementAudit(),

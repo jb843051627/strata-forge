@@ -11,6 +11,8 @@ func (s *LabService) QueueRun(ctx context.Context, sampleID int64) (model.Run, e
 	if err := requirePositiveID(sampleID, "sample"); err != nil {
 		return model.Run{}, err
 	}
+	s.runCreationMu.Lock()
+	defer s.runCreationMu.Unlock()
 	sample, err := s.GetSample(ctx, sampleID)
 	if err != nil {
 		return model.Run{}, err
@@ -18,11 +20,6 @@ func (s *LabService) QueueRun(ctx context.Context, sampleID int64) (model.Run, e
 	if sample.Status != model.SampleLayered && sample.Status != model.SampleRunning {
 		return model.Run{}, fmt.Errorf("%w: sample state %s cannot start a run", model.ErrConflict, sample.Status)
 	}
-	if s.pendingRuns[sampleID] {
-		return model.Run{}, fmt.Errorf("%w: sample is already being queued", model.ErrConflict)
-	}
-	s.pendingRuns[sampleID] = true
-	defer delete(s.pendingRuns, sampleID)
 	if active, findErr := s.store.FindActiveRun(ctx, sampleID); findErr == nil {
 		return active, fmt.Errorf("%w: sample already has run %d", model.ErrConflict, active.ID)
 	}
